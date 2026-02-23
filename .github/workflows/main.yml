@@ -7,12 +7,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-- name: Setup Python Environment
-        uses: actions/setup-python@v4
+      - name: Setup Python Environment
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.10' # Python version ko 3.10 kar dein
+          python-version: '3.11' # Upgraded to 3.11 for better compatibility
 
       - name: Execute Script and Capture Errors
         id: run_script
@@ -24,10 +24,14 @@ jobs:
       - name: Consult Gemini AI on Failure
         if: steps.run_script.outcome == 'failure'
         env:
+          # This must match your GitHub Secret name
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          pip install -q -U google-generativeai
+          # Installing the NEW Google GenAI SDK
+          pip install -q -U google-genai
+          
           # Storing logs into a variable
           ERROR_MSG=$(cat log.txt)
-          # Running the debugger script with the error log
+          
+          # Executing the debugger script
           python3 ai_debugger.py "$ERROR_MSG"
