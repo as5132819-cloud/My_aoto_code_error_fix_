@@ -9,10 +9,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Setup Python Environment
+- name: Setup Python Environment
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.10' # Python version ko 3.10 kar dein
 
       - name: Execute Script and Capture Errors
         id: run_script
