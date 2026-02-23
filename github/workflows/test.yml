@@ -1,0 +1,33 @@
+name: AI_Error_Fixer_Pipeline
+
+on: [push]
+
+jobs:
+  debug-process:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Python Environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Execute Script and Capture Errors
+        id: run_script
+        continue-on-error: true
+        run: |
+          # Running the broken script and redirecting stderr to log.txt
+          python3 code_with_error.py 2> log.txt
+
+      - name: Consult Gemini AI on Failure
+        if: steps.run_script.outcome == 'failure'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          pip install -q -U google-generativeai
+          # Storing logs into a variable
+          ERROR_MSG=$(cat log.txt)
+          # Running the debugger script with the error log
+          python3 ai_debugger.py "$ERROR_MSG"
