@@ -12,7 +12,7 @@ jobs:
       - name: Setup Python Environment
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11' # Upgraded to 3.11 for better compatibility
+          python-version: '3.11'
 
       - name: Execute Script and Capture Errors
         id: run_script
@@ -21,17 +21,17 @@ jobs:
           # Running the broken script and redirecting stderr to log.txt
           python3 code_with_error.py 2> log.txt
 
-      - name: Consult Gemini AI on Failure
+      - name: Consult Groq AI on Failure
         if: steps.run_script.outcome == 'failure'
         env:
-          # This must match your GitHub Secret name
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # Make sure you added GROQ_API_KEY in GitHub Secrets
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
-          # Installing the NEW Google GenAI SDK
-          pip install -q -U google-genai
+          # Installing Groq SDK
+          pip install -q groq
           
-          # Storing logs into a variable
+          # Reading logs
           ERROR_MSG=$(cat log.txt)
           
-          # Executing the debugger script
+          # Running the updated debugger script
           python3 ai_debugger.py "$ERROR_MSG"
