@@ -1,25 +1,21 @@
 import os
-import google.generativeai as genai
 import sys
+from google import genai
 
-# API Key setup
-api_key = os.environ.get('GEMINI_API_KEY')
-genai.configure(api_key=api_key)
+# Setup client (It automatically picks GEMINI_API_KEY from environment)
+client = genai.Client()
 
-# 2026 version fix: Try using 'gemini-1.5-flash-latest' or just 'gemini-1.5-flash'
-# Adding safety to the model name
-model = genai.GenerativeModel('gemini-1.5-flash')
-
+# Get the error message from GitHub Action arguments
 error_log = sys.argv[1] if len(sys.argv) > 1 else "No error log provided"
 
-prompt = f"""
-Identify the error in this Python code and provide a fix.
-Error: {error_log}
-"""
+prompt = f"Identify the error in this code and provide a fix: {error_log}"
 
 try:
-    # Adding a safety check for the API version
-    response = model.generate_content(prompt)
+    # Using the latest Gemini 3 Flash model
+    response = client.models.generate_content(
+        model="gemini-2.0-flash", # Or gemini-3-flash-preview if available
+        contents=prompt
+    )
     print("\n🚀 GEMINI AI DEBUGGER REPORT")
     print(response.text)
 except Exception as e:
