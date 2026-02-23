@@ -1,37 +1,60 @@
-import os
-import sys
-from groq import Groq
+name: AI_Pull_Request_Fixer
 
-# Initialize Groq Client using the Secret Key
-client = Groq(api_key=os.environ.get('GROQ_API_KEY'))
+on: [push]
 
-# Catching the error message from GitHub Actions
-error_log = sys.argv[1] if len(sys.argv) > 1 else "No error log provided"
+permissions:
+  contents: write
+  pull-requests: write
 
-prompt = f"""
-The following Python code failed. 
-Error Log: {error_log}
-
-Please:
-1. Identify the mistake.
-2. Provide the corrected code.
-3. Explain why it failed.
-"""
-
-try:
-    # Fast Inference with Llama 3.3
-    completion = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[
-            {"role": "system", "content": "You are a helpful coding assistant."},
-            {"role": "user", "content": prompt}
-        ]
-    )
+jobs:
+  debug-process:
+    # Sirf tab chale jab user khud code push kare (AI ke PRs par na chale)
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
     
-    print("\n" + "="*45)
-    print("⚡ GROQ AI FAST DEBUGGER REPORT")
-    print("="*45)
-    print(completion.choices[0].message.content)
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-except Exception as e:
-    print(f"❌ Groq API Error: {e}")
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Execute and Capture Error
+        id: run_script
+        continue-on-error: true
+        run: |
+          python3 code_with_error.py 2> log.txt
+
+      - name: AI Fix and Create PR
+        if: steps.run_script.outcome == 'failure'
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Built-in token for PRs
+        run: |
+          pip install -q groq
+          ERROR_MSG=$(cat log.txt)
+          
+          # 1. AI fixes the file locally
+          python3 ai_debugger.py "$ERROR_MSG"
+          
+          # 2. Setup Git
+          git config --global user.name "ai-bot"
+          git config --global user.email "ai-bot@github.com"
+          
+          # 3. Create a new branch for the fix
+          BRANCH_NAME="ai-fix-${{ github.run_id }}"
+          git checkout -b $BRANCH_NAME
+          
+          # 4. Commit and Push the new branch
+          git add code_with_error.py
+          git commit -m "🤖 AI: Suggested fix for syntax error"
+          git push origin $BRANCH_NAME
+          
+          # 5. Create the Pull Request using GitHub CLI
+          gh pr create \
+            --title "🤖 AI Fix: Corrected error in code_with_error.py" \
+            --body "I found an error in your code. Here is the fix: \n\n \`\`\` \n $(cat log.txt) \n \`\`\`" \
+            --base main \
+            --head $BRANCH_NAME
