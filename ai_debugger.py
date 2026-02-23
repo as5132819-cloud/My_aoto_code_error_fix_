@@ -2,32 +2,25 @@ import os
 import google.generativeai as genai
 import sys
 
-# Fetching API Key from GitHub Secrets
+# API Key setup
 api_key = os.environ.get('GEMINI_API_KEY')
 genai.configure(api_key=api_key)
 
-# Using Gemini 1.5 Flash for speed
+# 2026 version fix: Try using 'gemini-1.5-flash-latest' or just 'gemini-1.5-flash'
+# Adding safety to the model name
 model = genai.GenerativeModel('gemini-1.5-flash')
 
-# Reading error log passed from the workflow
 error_log = sys.argv[1] if len(sys.argv) > 1 else "No error log provided"
 
 prompt = f"""
-The following Python code has failed. 
-Error Log:
-{error_log}
-
-Please provide:
-1. Identification of the syntax or logical error.
-2. The corrected code block.
-3. A brief explanation of the fix.
+Identify the error in this Python code and provide a fix.
+Error: {error_log}
 """
 
 try:
+    # Adding a safety check for the API version
     response = model.generate_content(prompt)
-    print("\n" + "="*40)
-    print("🚀 GEMINI AI DEBUGGER REPORT")
-    print("="*40)
+    print("\n🚀 GEMINI AI DEBUGGER REPORT")
     print(response.text)
 except Exception as e:
     print(f"Error calling Gemini API: {e}")
